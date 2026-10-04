@@ -1,0 +1,30 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - web
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=web
+      - traefik.http.routers.chat-trofimdev-ru.rule=Host(`chat.trofimdev.ru`)
+      - traefik.http.routers.chat-trofimdev-ru.entrypoints=websecure
+      - traefik.http.routers.chat-trofimdev-ru.tls.certresolver=le
+      - traefik.http.services.chat-trofimdev-ru.loadbalancer.server.port=80
+
+networks:
+  web:
+    external: true

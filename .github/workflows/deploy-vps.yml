@@ -1,0 +1,41 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+
+      - name: Запросить деплой у edge
+        env:
+          GH_TOKEN: ${{ secrets.EDGE_DISPATCH_TOKEN }}
+        run: |
+          gh workflow run deploy-site.yml \
+            -R ${{ github.repository_owner }}/edge \
+            --ref main \
+            -f repo=${{ github.event.repository.name }} \
+            -f ref=${{ github.sha }}
+          echo "Деплой запрошен: ${{ github.sha }}"
+          echo "Ход выполнения: https://github.com/${{ github.repository_owner }}/edge/actions/workflows/deploy-site.yml"
